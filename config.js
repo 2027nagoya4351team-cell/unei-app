@@ -1,7 +1,7 @@
 // 運営管理ツール(新しいアプリ)の設定。ここには「公開してよい値」だけを書く(秘密の鍵は書かない)
 self.APP_CONFIG = {
-  // Apps Script のウェブアプリURL(…/exec)。← いまはテスト環境
-  apiUrl: 'https://script.google.com/macros/s/AKfycbwHYS25jRp3qDD0DvoJWPFENF3pV5aPWyKXAh8MYuVekJYDlxB0DCmMn4riZdkSAZkl1Q/exec',
+  // Apps Script のウェブアプリURL(…/exec)。← 本番(2026-10-16 から)。テスト環境は https://script.google.com/macros/s/AKfycbwHYS25jRp3qDD0DvoJWPFENF3pV5aPWyKXAh8MYuVekJYDlxB0DCmMn4riZdkSAZkl1Q/exec
+  apiUrl: 'https://script.google.com/macros/s/AKfycbwQ8sw4DCY0cjaU0leHBZIjq5ZeZY_IQvUkLbzM53_plipadm4t1xoIB0vVpEtJbfs/exec',
   // Firebase(プロジェクト unei-kanri)の公開設定
   firebase: {
     apiKey: 'AIzaSyBQoEz5-ND4_D2aJwgPNiU7PkRpmjuSazw',
