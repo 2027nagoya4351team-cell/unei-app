@@ -1,6 +1,6 @@
 // 運営管理ツール Service Worker(app/build.js が作る。直接編集しない)
 // 役割: アプリの殻を保存して速く・電波が弱くても開けるようにする/新しい版の知らせ/プッシュ通知の受信
-var VERSION = 'v8.0 (2026-10-16)', CACHE = 'unei-' + VERSION;
+var VERSION = 'v8.3 (2026-10-16)', CACHE = 'unei-' + VERSION;
 var SHELL = ['./', 'index.html', 'config.js', 'manifest.json', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-180.png', 'icons/badge-96.png'];
 importScripts('config.js');
 self.addEventListener('install', function (e) {
@@ -36,6 +36,14 @@ self.addEventListener('notificationclick', function (e) {
     for (var i = 0; i < cs.length; i++) if ('focus' in cs[i]) return cs[i].focus();
     return self.clients.openWindow('./');
   }));
+});
+// v8.3: 通知が届いたら、ホーム画面のアイコンの数字を更新(サーバーが data.badge に「やること」の数を入れて送る)
+self.addEventListener('push', function (e) {
+  try {
+    var j = e.data ? e.data.json() : null, b = j && j.data ? j.data.badge : undefined;
+    if (b === undefined || b === '' || !self.navigator || !self.navigator.setAppBadge) return;
+    var n = +b; e.waitUntil(n > 0 ? self.navigator.setAppBadge(n) : self.navigator.clearAppBadge());
+  } catch (err) { }
 });
 // プッシュ通知(Firebase Cloud Messaging)。config.js に firebase の設定があるときだけ
 var C = self.APP_CONFIG || {};
