@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>通知の鍵の登録(管理者用)</title><meta name="robots" content="noindex">
+<style>body{font-family:system-ui,sans-serif;max-width:640px;margin:0 auto;padding:16px;color:#222;background:#faf7f5}h1{font-size:18px}textarea{width:100%;box-sizing:border-box;font:12px monospace;padding:8px}button{background:#b03a2e;color:#fff;border:0;border-radius:8px;padding:10px 16px;font-size:15px;margin-top:8px}.n{font-size:13px;color:#666}#m{margin-top:12px;font-weight:bold}</style>
+<script src="config.js"></script></head><body>
+<h1>🔔 通知の送信用の鍵を登録(管理者用)</h1>
+<p class="n">このページは、新しいアプリに<b>管理者でログインしている端末</b>で開いてください。<br>Firebase コンソール → プロジェクトの設定 → サービス アカウント → 「新しい秘密鍵を生成」でダウンロードした .json ファイルを開き、中身をすべてコピーして下に貼り付けます。鍵はサーバー(Apps Script)にだけ保存され、ここには残りません。</p>
+<p class="n">接続先:<span id="u"></span></p>
+<textarea id="k" rows="10" autocomplete="off" spellcheck="false" placeholder='{ "type": "service_account", … }'></textarea>
+<button id="b">鍵を登録</button>
+<div id="m"></div>
+<p class="n"><a href="./">アプリに戻る</a></p>
+<script>
+var C=self.APP_CONFIG||{},t=null;try{t=localStorage.getItem('wbs_token');}catch(e){}
+document.getElementById('u').textContent=C.apiUrl?C.apiUrl.replace(/^(.{50}).*(.{10})$/,'$1…$2'):'(未設定)';
+function msg(s,ok){var m=document.getElementById('m');m.textContent=s;m.style.color=ok?'#2a7a3a':'#b03a2e';}
+if(!t)msg('ログインしていません。先にアプリでログインしてから、このページを開いてください。');
+document.getElementById('b').onclick=function(){
+  var v=document.getElementById('k').value.trim(),b=this;if(!t)return msg('ログインしていません。');if(!v)return msg('鍵の中身を貼り付けてください。');
+  b.disabled=true;msg('登録中…',true);
+  fetch(C.apiUrl,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({fn:'api',args:[t,'sysAction',{what:'pushKey',json:v}]}),redirect:'follow',cache:'no-store'})
+  .then(function(r){return r.json();}).then(function(j){
+    b.disabled=false;if(j.error)return msg('登録できませんでした:'+j.error.replace(/^AUTH:/,''));
+    document.getElementById('k').value='';msg('登録しました(送信用アカウント:'+j.r.email+')。アプリの「通知」から「テスト通知を送る」で確認できます。',true);
+  }).catch(function(){b.disabled=false;msg('通信できませんでした。');});
+};
+</script></body></html>
