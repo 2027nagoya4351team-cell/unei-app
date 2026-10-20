@@ -1,6 +1,6 @@
 // 運営管理ツール Service Worker(app/build.js が作る。直接編集しない)
 // 役割: アプリの殻を保存して速く・電波が弱くても開けるようにする/新しい版の知らせ/プッシュ通知の受信
-var VERSION = 'v10.5 (2026-10-20)', CACHE = 'unei-' + VERSION;
+var VERSION = 'v10.6 (2026-10-21)', CACHE = 'unei-' + VERSION;
 var SHELL = ['./', 'index.html', 'config.js', 'manifest.json', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-180.png', 'icons/badge-96.png'];
 importScripts('config.js');
 self.addEventListener('install', function (e) {
@@ -11,17 +11,25 @@ self.addEventListener('activate', function (e) {
     return Promise.all(ks.filter(function (k) { return k !== CACHE && k.indexOf('unei-') === 0; }).map(function (k) { return caches.delete(k); }));
   }).then(function () { return self.clients.claim(); }));
 });
-self.addEventListener('message', function (e) { if (e.data === 'SKIP_WAITING') self.skipWaiting(); });
+self.addEventListener('message', function (e) { if (e.data === 'SKIP_WAITING') self.skipWaiting(); else if (e.data === 'VERSION' && e.ports && e.ports[0]) e.ports[0].postMessage(VERSION); }); // v10.6: 画面が新しい版と同じなら、知らせを出さずに入れ替える
 self.addEventListener('fetch', function (e) {
   var r = e.request; if (r.method !== 'GET') return;
   var u = new URL(r.url); if (u.origin !== location.origin) return; // サーバー(Apps Script)や Firebase への通信には触らない
   var fresh = r.mode === 'navigate' || /\/(index\.html)?$/.test(u.pathname) || /config\.js$/.test(u.pathname);
   if (fresh) {
     // 画面本体は「まずネット、だめなら保存してあるもの」(更新がすぐ届く)
-    e.respondWith(fetch(r).then(function (res) {
-      if (res.ok) { var cp = res.clone(); caches.open(CACHE).then(function (c) { c.put(r.mode === 'navigate' ? 'index.html' : r, cp); }); }
+    // v10.6: 電波が弱くて2.5秒たっても届かないときは保存してある画面をすぐ出し、裏で最新を取って次回に使う
+    var key = r.mode === 'navigate' ? 'index.html' : r;
+    var net = fetch(r).then(function (res) {
+      if (res.ok) { var cp = res.clone(); caches.open(CACHE).then(function (c) { c.put(key, cp); }); }
       return res;
-    }).catch(function () { return caches.match(r.mode === 'navigate' ? 'index.html' : r, { ignoreSearch: true }); }));
+    });
+    e.respondWith(new Promise(function (ok) {
+      var done = false, give = function (x) { if (!done && x) { done = true; ok(x); } };
+      var t = setTimeout(function () { caches.match(key, { ignoreSearch: true }).then(give); }, 2500);
+      net.then(function (res) { clearTimeout(t); give(res); }).catch(function () { clearTimeout(t); caches.match(key, { ignoreSearch: true }).then(function (h) { give(h || Response.error()); }); });
+    }));
+    e.waitUntil(net.catch(function () { }));
   } else {
     e.respondWith(caches.match(r, { ignoreSearch: true }).then(function (hit) {
       return hit || fetch(r).then(function (res) { if (res.ok) { var cp = res.clone(); caches.open(CACHE).then(function (c) { c.put(r, cp); }); } return res; });
