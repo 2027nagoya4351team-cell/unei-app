@@ -1,6 +1,6 @@
 // 運営管理ツール Service Worker(app/build.js が作る。直接編集しない)
 // 役割: アプリの殻を保存して速く・電波が弱くても開けるようにする/新しい版の知らせ/プッシュ通知の受信
-var VERSION = 'v10.8 (2026-10-21)', CACHE = 'unei-' + VERSION;
+var VERSION = 'v10.9 (2026-10-21)', CACHE = 'unei-' + VERSION;
 var SHELL = ['./', 'index.html', 'config.js', 'manifest.json', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-180.png', 'icons/badge-96.png'];
 importScripts('config.js');
 self.addEventListener('install', function (e) {
@@ -48,6 +48,8 @@ self.addEventListener('push', function (e) {
   var b = d.badge;
   if (b !== undefined && b !== '' && self.navigator && self.navigator.setAppBadge) jobs.push(+b > 0 ? self.navigator.setAppBadge(+b) : self.navigator.clearAppBadge());
   jobs.push(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (cs) { cs.forEach(function (c) { c.postMessage({ type: 'push', title: title, body: body }); }); }));
+  var C = self.APP_CONFIG || {}; // v10.9: 「届いた」をサーバーに知らせる(どの端末に届かないかを管理者が分かるように)
+  if (d.k && C.apiUrl) jobs.push(fetch(C.apiUrl, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ fn: 'pushAck', args: [d.k] }) }));
   try { jobs.push(caches.open('diag-push').then(function (c) { return c.put('last', new Response(JSON.stringify({ at: Date.now(), title: title, ver: VERSION }))); })); } catch (x) { } // v10.8: 届いた記録(通知の診断で表示)
   e.waitUntil(Promise.all(jobs.map(function (p) { return Promise.resolve(p).catch(function () { }); })));
 });
