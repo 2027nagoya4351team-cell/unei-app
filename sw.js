@@ -1,6 +1,6 @@
 // 運営管理ツール Service Worker(app/build.js が作る。直接編集しない)
 // 役割: アプリの殻を保存して速く・電波が弱くても開けるようにする/新しい版の知らせ/プッシュ通知の受信
-var VERSION = 'v10.6 (2026-10-21)', CACHE = 'unei-' + VERSION;
+var VERSION = 'v10.7 (2026-10-21)', CACHE = 'unei-' + VERSION;
 var SHELL = ['./', 'index.html', 'config.js', 'manifest.json', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-180.png', 'icons/badge-96.png'];
 importScripts('config.js');
 self.addEventListener('install', function (e) {
@@ -36,27 +36,27 @@ self.addEventListener('fetch', function (e) {
     }));
   }
 });
-// 通知を押したとき(Firebase 以外から来た通知用。Firebase の通知は SDK が開く)
+// v10.7: 通知は Firebase の部品を使わず、ここで必ず表示する。
+// iPhone は「通知が来たのに表示しなかった」ことが数回あると、その端末の通知の登録を黙って止めてしまう
+// (Firebase の部品はアプリを開いている間は表示しないため、テスト通知などで止められていた)
+self.addEventListener('push', function (e) {
+  var j = {}; try { j = e.data ? e.data.json() : {}; } catch (x) { try { j = { notification: { body: e.data.text() } }; } catch (y) { } }
+  var n = j.notification || {}, d = j.data || {};
+  var title = n.title || d['gcm.notification.title'] || '運営管理ツール', body = n.body || d['gcm.notification.body'] || '';
+  var url = (j.fcmOptions && j.fcmOptions.link) || n.click_action || ((d.url || './') + (d.go ? '#go=' + encodeURIComponent(d.go) : ''));
+  var jobs = [self.registration.showNotification(title, { body: body, icon: n.icon || 'icons/icon-192.png', badge: n.badge || 'icons/badge-96.png', tag: n.tag || ('m-' + Date.now()), renotify: true, vibrate: [200, 100, 200], data: { url: url, go: d.go || '' } })];
+  var b = d.badge;
+  if (b !== undefined && b !== '' && self.navigator && self.navigator.setAppBadge) jobs.push(+b > 0 ? self.navigator.setAppBadge(+b) : self.navigator.clearAppBadge());
+  jobs.push(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (cs) { cs.forEach(function (c) { c.postMessage({ type: 'push', title: title, body: body }); }); }));
+  e.waitUntil(Promise.all(jobs.map(function (p) { return Promise.resolve(p).catch(function () { }); })));
+});
+// 通知を押したとき:開いているアプリがあればその画面へ、なければアプリを開く
 self.addEventListener('notificationclick', function (e) {
-  var d = e.notification.data || {}; if (d.FCM_MSG) return;
+  var d = e.notification.data || {}, url = d.url || './';
+  if (d.FCM_MSG) url = (d.FCM_MSG.fcmOptions && d.FCM_MSG.fcmOptions.link) || url; // 前の版で表示された通知
   e.notification.close();
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (cs) {
-    for (var i = 0; i < cs.length; i++) if ('focus' in cs[i]) return cs[i].focus();
-    return self.clients.openWindow('./');
+    for (var i = 0; i < cs.length; i++) if ('focus' in cs[i]) { cs[i].postMessage({ type: 'go', go: d.go || ((/#go=([^&]+)/.exec(url) || [])[1] ? decodeURIComponent(/#go=([^&]+)/.exec(url)[1]) : '') }); return cs[i].focus(); }
+    return self.clients.openWindow(url);
   }));
 });
-// v8.3: 通知が届いたら、ホーム画面のアイコンの数字を更新(サーバーが data.badge に「やること」の数を入れて送る)
-self.addEventListener('push', function (e) {
-  try {
-    var j = e.data ? e.data.json() : null, b = j && j.data ? j.data.badge : undefined;
-    if (b === undefined || b === '' || !self.navigator || !self.navigator.setAppBadge) return;
-    var n = +b; e.waitUntil(n > 0 ? self.navigator.setAppBadge(n) : self.navigator.clearAppBadge());
-  } catch (err) { }
-});
-// プッシュ通知(Firebase Cloud Messaging)。config.js に firebase の設定があるときだけ
-var C = self.APP_CONFIG || {};
-if (C.firebase && C.firebase.apiKey) {
-  importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js', 'https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js');
-  firebase.initializeApp(C.firebase);
-  firebase.messaging(); // 画面が閉じているときの通知は SDK が表示する
-}
