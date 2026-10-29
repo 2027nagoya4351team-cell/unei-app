@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://asia-northeast1-unei-kanri.cloudfunctions.net https://*.a.run.app; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<title>出欠の回答</title>
+<style>
+:root{--red:#b5302a;--bg:#f6f2ee;--card:#fff;--line:#e5ddd5;--text:#222;--muted:#776e66;--ok:#2e7d32}
+@media (prefers-color-scheme:dark){:root{--bg:#1c1b1d;--card:#29282b;--line:#3a383c;--text:#eee;--muted:#aaa39c}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;font-size:16px;line-height:1.6}
+main{max-width:520px;margin:0 auto;padding:16px 16px 40px}
+.card{background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+h1{font-size:20px;margin:4px 0 2px}
+.team{color:var(--red);font-weight:bold;font-size:13px}
+.meta{color:var(--muted);font-size:14px}
+.note{white-space:pre-wrap;background:var(--bg);border-radius:10px;padding:10px 12px;margin-top:10px;font-size:14px}
+label.lb{display:block;font-weight:bold;margin:14px 0 6px;font-size:15px}
+input[type=text],select,textarea{width:100%;font-size:16px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--text)}
+textarea{min-height:70px;resize:vertical}
+.opts{display:flex;gap:8px}
+.opts button{flex:1;padding:12px 4px;border:2px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);font-size:16px}
+.opts button.on{border-color:var(--red);background:var(--red);color:#fff;font-weight:bold}
+.go{width:100%;margin-top:18px;padding:14px;border:0;border-radius:12px;background:var(--red);color:#fff;font-size:17px;font-weight:bold}
+.go:disabled{opacity:.6}
+.msg{text-align:center;padding:24px 12px}
+.done{color:var(--ok);font-size:20px;font-weight:bold}
+.err{color:var(--red);font-size:14px;margin-top:10px;min-height:1em}
+.small{font-size:12px;color:var(--muted);margin-top:16px;text-align:center}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<main>
+<div class="card" id="box"><div class="msg">読み込み中…</div></div>
+<p class="small">この回答は、本番の運営にだけ使い、本番が終わって30日たつと消えます。</p>
+</main>
+<script src="config.js"></script>
+<script>
+(function () {
+  var C = self.APP_CONFIG || {}, API = C.apiUrl, box = document.getElementById('box');
+  var tok = (/[#&?]k=([a-f0-9]{32})/.exec(location.hash + location.search) || [])[1] || '';
+  var store = { get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) { } } };
+  var KEY = 'g_' + tok;
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function md(d) { return d ? (+d.slice(5, 7)) + '/' + (+d.slice(8, 10)) + '(' + '日月火水木金土'.charAt(new Date(d + 'T00:00:00').getDay()) + ')' : ''; }
+  function call(op, p) {
+    return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ fn: 'guest', args: [op, tok, p || {}] }) })
+      .then(function (r) { if (!r.ok) throw new Error('つながりませんでした(' + r.status + ')。少し待ってもう一度開いてください'); return r.json(); },
+            function () { throw new Error('つながりませんでした。電波の良い所でもう一度開いてください'); })
+      .then(function (j) { if (j.error) throw new Error(j.error); return j.r; });
+  }
+  function fail(m) { box.innerHTML = '<div class="msg">' + esc(m) + '</div>'; }
+  if (!API) return fail('設定が読み込めませんでした');
+  if (!tok) return fail('リンクが正しくありません。もらったリンクをもう一度開いてください');
+  call('get', { editKey: store.get(KEY) || '' }).then(draw, function (e) { fail(e.message); });
+  function draw(r) {
+    var f = r.form, m = r.mine || null, st = m ? m.status : '';
+    document.title = f.title + ' の出欠';
+    var when = md(f.date) + (f.endDate && f.endDate !== f.date ? '〜' + md(f.endDate) : '') + (f.start ? ' ' + esc(f.start) + '〜' : '');
+    var h = '<div class="team">' + esc(f.team) + '</div><h1>' + esc(f.title) + '</h1><div class="meta">📅 ' + when + (f.place ? '<br>📍 ' + esc(f.place) : '') + (f.deadline ? '<br>⏰ 回答の締め切り:' + md(f.deadline) : '') + '</div>';
+    if (f.note) h += '<div class="note">' + esc(f.note) + '</div>';
+    if (!f.open) { box.innerHTML = h + '<div class="msg">受付は終わりました。<br>チームの人に直接連絡してください。</div>' + (m ? '<div class="meta" style="text-align:center">あなたの回答:' + esc(m.name) + '・' + esc(m.status) + '</div>' : ''); return; }
+    if (m) h += '<div class="note">✅ 回答済みです(' + esc(String(m.at).slice(5, 16).replace('-', '/')) + ')。直すときは、下を変えて送り直してください。</div>';
+    h += '<label class="lb">名前</label><input type="text" id="nm" maxlength="30" autocomplete="name" placeholder="例:山田花子(LINEの名前でもOK)" value="' + esc(m ? m.name : '') + '">';
+    h += '<label class="lb">参加できますか？</label><div class="opts" id="st">' + f.statuses.map(function (s) { return '<button type="button" data-s="' + esc(s) + '" class="' + (s === st ? 'on' : '') + '">' + esc(s) + '</button>'; }).join('') + '</div>';
+    if (f.askSize) h += '<div id="szw" class="' + (st === '不参加' ? 'hidden' : '') + '"><label class="lb">Tシャツのサイズ</label><select id="sz"><option value="">選んでください</option>' + f.sizes.map(function (s) { return '<option' + (m && m.size === s ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '</select></div>';
+    h += '<label class="lb">ひとこと(任意)</label><textarea id="cm" maxlength="200" placeholder="例:午後から参加します">' + esc(m ? m.comment : '') + '</textarea>';
+    h += '<button class="go" id="go">' + (m ? '回答を直す' : '回答を送る') + '</button><div class="err" id="er"></div>';
+    box.innerHTML = h;
+    Array.prototype.forEach.call(document.querySelectorAll('#st button'), function (b) {
+      b.onclick = function () { st = b.getAttribute('data-s'); Array.prototype.forEach.call(document.querySelectorAll('#st button'), function (x) { x.className = x === b ? 'on' : ''; }); var w = document.getElementById('szw'); if (w) w.className = st === '不参加' ? 'hidden' : ''; };
+    });
+    document.getElementById('go').onclick = function () {
+      var er = document.getElementById('er'), nm = document.getElementById('nm').value.trim(), sz = document.getElementById('sz'), btn = this;
+      er.textContent = '';
+      if (!nm) return er.textContent = '名前を入れてください';
+      if (!st) return er.textContent = '参加できるかを選んでください';
+      if (sz && st !== '不参加' && !sz.value) return er.textContent = 'Tシャツのサイズを選んでください';
+      btn.disabled = true; btn.textContent = '送っています…';
+      call('submit', { name: nm, status: st, size: sz && st !== '不参加' ? sz.value : '', comment: document.getElementById('cm').value, editKey: store.get(KEY) || '' }).then(function (x) {
+        store.set(KEY, x.editKey);
+        box.innerHTML = '<div class="msg"><div class="done">✅ 受け付けました</div><p>' + esc(nm) + 'さん・' + esc(st) + '</p><p class="meta">ありがとうございます。<br>あとで変えたいときは、同じリンクをこのスマホでもう一度開いてください。</p></div>';
+      }, function (e) { btn.disabled = false; btn.textContent = m ? '回答を直す' : '回答を送る'; er.textContent = e.message; });
+    };
+  }
+})();
+</script>
+</body>
+</html>
