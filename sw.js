@@ -1,6 +1,6 @@
 // 運営管理ツール Service Worker(app/build.js が作る。直接編集しない)
 // 役割: アプリの殻を保存して速く・電波が弱くても開けるようにする/新しい版の知らせ/プッシュ通知の受信
-var VERSION = 'v10.46 (2026-10-29)', CACHE = 'unei-' + VERSION;
+var VERSION = 'v10.45 (2026-10-29)', CACHE = 'unei-' + VERSION;
 var SHELL = ['./', 'index.html', 'config.js', 'manifest.json', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-180.png', 'icons/badge-96.png'];
 importScripts('config.js');
 self.addEventListener('install', function (e) {
@@ -15,7 +15,6 @@ self.addEventListener('message', function (e) { if (e.data === 'SKIP_WAITING') s
 self.addEventListener('fetch', function (e) {
   var r = e.request; if (r.method !== 'GET') return;
   var u = new URL(r.url); if (u.origin !== location.origin) return; // サーバー(Apps Script)や Firebase への通信には触らない
-  if (/\/guest\.html$/.test(u.pathname)) return; // v10.46: 限定さん用のページは保存しない(アプリの画面と混ざらないように)
   var fresh = r.mode === 'navigate' || /\/(index\.html)?$/.test(u.pathname) || /config\.js$/.test(u.pathname);
   if (fresh) {
     // 画面本体は「まずネット、だめなら保存してあるもの」(更新がすぐ届く)
