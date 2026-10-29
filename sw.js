@@ -1,10 +1,10 @@
 // 運営管理ツール Service Worker(app/build.js が作る。直接編集しない)
 // 役割: アプリの殻を保存して速く・電波が弱くても開けるようにする/新しい版の知らせ/プッシュ通知の受信
-var VERSION = 'v10.41 (2026-10-29)', CACHE = 'unei-' + VERSION;
+var VERSION = 'v10.42 (2026-10-29)', CACHE = 'unei-' + VERSION;
 var SHELL = ['./', 'index.html', 'config.js', 'manifest.json', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-180.png', 'icons/badge-96.png'];
 importScripts('config.js');
 self.addEventListener('install', function (e) {
-  e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(SHELL); }));
+  e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(SHELL.map(function (u) { return new Request(u, { cache: 'reload' }); })); }));
 });
 self.addEventListener('activate', function (e) {
   e.waitUntil(caches.keys().then(function (ks) {
