@@ -4,6 +4,8 @@ self.APP_CONFIG = {
   // 2026-10-29 から Firebase(Cloud Functions)。元の Apps Script の URL(下)に戻しても動く(そちらは Firebase に転送する)
   //   https://script.google.com/macros/s/AKfycbwQ8sw4DCY0cjaU0leHBZIjq5ZeZY_IQvUkLbzM53_plipadm4t1xoIB0vVpEtJbfs/exec
   apiUrl: 'https://asia-northeast1-unei-kanri.cloudfunctions.net/teamapi',
+  // Firebase が止まったときの予備(Apps Script。スプレッドシートの控えで「見るだけ」)
+  fallbackUrl: 'https://script.google.com/macros/s/AKfycbwQ8sw4DCY0cjaU0leHBZIjq5ZeZY_IQvUkLbzM53_plipadm4t1xoIB0vVpEtJbfs/exec',
   // Firebase(プロジェクト unei-kanri)の公開設定
   firebase: {
     apiKey: 'AIzaSyBQoEz5-ND4_D2aJwgPNiU7PkRpmjuSazw',
