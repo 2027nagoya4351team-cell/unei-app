@@ -1,13 +1,32 @@
-# 運営管理ツール(新しいアプリ)
+# 運営管理ツール(アプリの画面)
 
 よさこいチームの運営管理ツールを、スマホのホーム画面に置けるアプリ(PWA)にしたものです。
-データとサーバーは Google Apps Script(チームの Google アカウント)にあり、このリポジトリには**画面だけ**が入っています。
+このリポジトリには**画面だけ**が入っています。データとサーバーは別の場所にあります。
 
-- 公開: GitHub Pages(このリポジトリの main ブランチ / ルート)
-- 設定: `config.js`(サーバーのURL・Firebase の公開設定)。**秘密の鍵は絶対に置かない**
-- 通知: Firebase Cloud Messaging。送信用の鍵は Apps Script のスクリプト プロパティ `FCM_SA` にだけ置く
+## 全体のしくみ
+
+| 役割 | 置き場所 |
+|---|---|
+| 画面(このリポジトリ) | GitHub Pages(main ブランチ / ルート) |
+| サーバー・データ | Firebase(プロジェクト `unei-kanri`)の Cloud Functions と Firestore |
+| 通知 | Firebase Cloud Messaging |
+| メール送信・Google ドキュメント・ドライブ | Google Apps Script(Firebase から頼まれて動く「お使い役」) |
+| 予備 | Apps Script 側(スプレッドシート)にデータの控えがあり、Firebase が止まったときは「見るだけ」で動く。止まったら管理者にメールが届く |
+
+## ファイル
+
+- `index.html` … 入口。`app.XXXX.js`(XXXX は版の番号)を読み込む
+- `app.XXXX.js` … アプリ本体。新しい版を上げたら、1つ前の版だけ残して古いものは消してよい
+- `sw.js` … オフライン用・通知の受け取り(版の番号が変わると、開いているアプリに「新しいバージョンがあります」と出る)
+- `config.js` … つなぎ先の URL と Firebase の**公開用**の設定。**秘密の鍵は絶対に置かない**
+- `version.txt` … 今の版の名前
+- `manifest.json`・`icons/` … ホーム画面のアイコン
+- `leaflet194.js` … 地図の表示に使う部品
+- `guest.html` … 昔のリンク用の案内ページ(「使われていません」と出すだけ)
 
 ## 更新のしかた
-1. 開発用フォルダで `npm run build` を実行すると `pwa/` が作り直される(`config.js` は上書きしない)
-2. `pwa/` の中身を、このリポジトリにアップロード(「Add file → Upload files」で上書き)
+
+1. 開発用フォルダの `app/` で `node build.js 番号 "vX.XX (日付)"` を実行すると、`out_番号/` ができる
+2. その中の `app.番号.js`・`index.html`・`sw.js`・`version.txt` をこのリポジトリに上げる(`config.js` は上書きしない)
 3. 数分で反映。開いているアプリには「新しいバージョンがあります」と表示される
+4. うまく動かないときは、`index.html` の `var A="app.番号"` を1つ前の番号に戻せば元に戻る
