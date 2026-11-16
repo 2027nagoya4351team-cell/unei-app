@@ -1,6 +1,6 @@
-// 運営管理ツール Service Worker(app/build.js が作る。直接編集しない)
+// 綵咲のいろは Service Worker(app/build.js が作る。直接編集しない)
 // 役割: アプリの殻を保存して速く・電波が弱くても開けるようにする/新しい版の知らせ/プッシュ通知の受信
-var VERSION = 'v10.99 (2026-11-16)', CACHE = 'unei-' + VERSION;
+var VERSION = 'v11.00 (2026-11-17)', CACHE = 'unei-' + VERSION;
 var SHELL = ['./', 'index.html', 'config.js', 'manifest.json', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-180.png', 'icons/badge-96.png'];
 importScripts('config.js');
 self.addEventListener('install', function (e) {
@@ -42,7 +42,7 @@ self.addEventListener('fetch', function (e) {
 self.addEventListener('push', function (e) {
   var j = {}; try { j = e.data ? e.data.json() : {}; } catch (x) { try { j = { notification: { body: e.data.text() } }; } catch (y) { } }
   var n = j.notification || {}, d = j.data || {};
-  var title = n.title || d['gcm.notification.title'] || '運営管理ツール', body = n.body || d['gcm.notification.body'] || '';
+  var title = n.title || d['gcm.notification.title'] || '綵咲のいろは', body = n.body || d['gcm.notification.body'] || '';
   var url = (j.fcmOptions && j.fcmOptions.link) || n.click_action || ((d.url || './') + (d.go ? '#go=' + encodeURIComponent(d.go) : ''));
   var jobs = [self.registration.showNotification(title, { body: body, icon: n.icon || 'icons/icon-192.png', badge: n.badge || 'icons/badge-96.png', tag: n.tag || ('m-' + Date.now()), renotify: true, vibrate: [200, 100, 200], data: { url: url, go: d.go || '' } })];
   var b = d.badge;
