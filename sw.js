@@ -1,6 +1,6 @@
 // 綵咲のいろは Service Worker(app/build.js が作る。直接編集しない)
 // 役割: アプリの殻を保存して速く・電波が弱くても開けるようにする/新しい版の知らせ/プッシュ通知の受信
-var VERSION = 'v11.05 (2026-11-18)', CACHE = 'unei-' + VERSION;
+var VERSION = 'v11.06 (2026-11-18)', CACHE = 'unei-' + VERSION;
 var SHELL = ['./', 'index.html', 'config.js', 'manifest.json', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-180.png', 'icons/badge-96.png'];
 importScripts('config.js');
 self.addEventListener('install', function (e) {
@@ -45,9 +45,16 @@ self.addEventListener('push', function (e) {
   var title = n.title || d['gcm.notification.title'] || '綵咲のいろは', body = n.body || d['gcm.notification.body'] || '';
   var url = (j.fcmOptions && j.fcmOptions.link) || n.click_action || ((d.url || './') + (d.go ? '#go=' + encodeURIComponent(d.go) : ''));
   // v11.05: 出欠のお願いの通知には「⭕ 参加」「❌ 不参加」のボタン(押すとアプリが開いてすぐ回答。ボタンが出ない端末では今までどおり)
-  var ask = /^e:/.test(d.go || '') && /出欠/.test(title + body) && !/にしました|締切:/.test(title);
-  var opt = { body: body, icon: n.icon || 'icons/icon-192.png', badge: n.badge || 'icons/badge-96.png', tag: n.tag || ('m-' + Date.now()), renotify: true, vibrate: [200, 100, 200], data: { url: url, go: d.go || '', ask: ask ? 1 : 0 } };
-  if (ask) opt.actions = [{ action: 'yes', title: '⭕ 参加' }, { action: 'no', title: '❌ 不参加' }];
+  // v11.06: 通知の種類ごとにボタンを付け、押したとき(ボタンが出ない iPhone も)に同じ画面が開くようにする
+  var go = d.go || '', acts = null, tap = '';
+  if (/^e:/.test(go) && /出欠/.test(title + body) && !/にしました|締切:/.test(title)) acts = [{ action: 'yes', title: '⭕ 参加' }, { action: 'no', title: '❌ 不参加' }];
+  else if (/^e:/.test(go) && /^明日は/.test(title)) acts = [{ action: 'late', title: '⏰ 遅れる・休む' }];
+  else if (go && /さんがコメント|にコメント/.test(title)) { acts = [{ action: 'cmt', title: '💬 コメントする' }]; tap = 'cmt'; }
+  else if (/^n:/.test(go)) acts = [{ action: 'ack', title: '✅ 確認しました' }];
+  else if (/^p:/.test(go)) { acts = [{ action: 'ans', title: '🗳 答える' }]; tap = 'ans'; }
+  else if (/^c:/.test(go) && !/公開されます/.test(title)) { acts = [{ action: 'pay', title: '💳 支払いました' }]; tap = 'pay'; }
+  var opt = { body: body, icon: n.icon || 'icons/icon-192.png', badge: n.badge || 'icons/badge-96.png', tag: n.tag || ('m-' + Date.now()), renotify: true, vibrate: [200, 100, 200], data: { url: url, go: go, tap: tap } };
+  if (acts) opt.actions = acts;
   var jobs = [self.registration.showNotification(title, opt)];
   var b = d.badge;
   if (b !== undefined && b !== '' && self.navigator && self.navigator.setAppBadge) jobs.push(+b > 0 ? self.navigator.setAppBadge(+b) : self.navigator.clearAppBadge());
@@ -61,7 +68,7 @@ self.addEventListener('push', function (e) {
 self.addEventListener('notificationclick', function (e) {
   var d = e.notification.data || {}, url = d.url || './';
   if (d.FCM_MSG) url = (d.FCM_MSG.fcmOptions && d.FCM_MSG.fcmOptions.link) || url; // 前の版で表示された通知
-  var av = (e.action === 'yes' || e.action === 'no') && d.go ? e.action : '';
+  var av = d.go ? (/^(yes|no|late|cmt|ack|ans|pay)$/.test(e.action || '') ? e.action : (!e.action && d.tap) || '') : '';
   if (av) url = String(url).split('#')[0] + '#go=' + encodeURIComponent(d.go) + '&av=' + av;
   e.notification.close();
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (cs) {
