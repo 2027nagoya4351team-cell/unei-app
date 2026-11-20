@@ -25,5 +25,51 @@
       "type": "image/png",
       "purpose": "maskable"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "出欠を答える",
+      "short_name": "出欠",
+      "url": "./?s=vote",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "対応待ち",
+      "short_name": "対応待ち",
+      "url": "./?s=todo",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "アンケート",
+      "short_name": "アンケート",
+      "url": "./?s=polls",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "支払い",
+      "short_name": "支払い",
+      "url": "./?s=pay",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
   ]
 }
